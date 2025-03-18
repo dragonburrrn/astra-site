@@ -44,6 +44,7 @@ export default async (req, res) => {
                     .from('users')
                     .update({ first_name, last_name, phone, birth_date, location })
                     .eq('id', existingUser.id)
+                    .select()
                     .single();
 
                 if (updateError) {
@@ -57,7 +58,8 @@ export default async (req, res) => {
                 console.log('Вставляем данные пользователя:', { first_name, last_name, email, phone, birth_date, location });
                 const { data: newUser, error: insertError } = await supabase
                     .from('users')
-                    .insert([{ first_name, last_name, email, phone, birth_date, location }], { returning: 'representation' })
+                    .insert([{ first_name, last_name, email, phone, birth_date, location }])
+                    .select()
                     .single();
 
                 if (insertError) {
