@@ -3,10 +3,25 @@
   "version": "1.0.0",
   "description": "Мой сайт с формой записи",
   "main": "index.js",
+  "type": "module", // Если используете ES-модули
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "dev": "vercel dev",
+    "build": "echo 'Build step is not required for this project'",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0"
-  }
+  },
+  "engines": {
+    "node": "18.x" // Укажите вашу версию Node.js
+  },
+  "license": "MIT",
+  "keywords": [
+    "astro",
+    "supabase",
+    "vercel",
+    "form"
+  ],
+  "author": "Петрова Анастасия <nastyapetrova197@yandex.ru>"
 }
