@@ -24,6 +24,15 @@ export default async (req, res) => {
         }
 
         try {
+            // Преобразуем services и specialist в числа
+            const servicesArray = services.map(service => parseInt(service, 10));
+            const specialistId = parseInt(specialist, 10);
+
+            // Проверяем, что services и specialist являются числами
+            if (servicesArray.some(isNaN) || isNaN(specialistId)) {
+                return res.status(400).json({ message: 'Неверный формат данных для услуг или специалиста.' });
+            }
+
             // Проверяем, существует ли пользователь с таким email
             const { data: existingUser, error: existingUserError } = await supabase
                 .from('users')
@@ -73,16 +82,16 @@ export default async (req, res) => {
             console.log('Пользователь успешно создан/обновлен:', user);
 
             // Проверяем, что services является массивом
-            if (!services || !Array.isArray(services) || services.length === 0) {
+            if (!servicesArray || !Array.isArray(servicesArray) || servicesArray.length === 0) {
                 return res.status(400).json({ message: 'Не выбрано ни одной услуги.' });
             }
 
             // Сохраняем записи на услуги
-            for (const service_id of services) {
-                console.log('Вставляем запись на услугу:', { user_id: user.id, service_id, specialist_id: specialist });
+            for (const service_id of servicesArray) {
+                console.log('Вставляем запись на услугу:', { user_id: user.id, service_id, specialist_id: specialistId });
                 const { error: appointmentError } = await supabase
                     .from('appointments')
-                    .insert([{ user_id: user.id, service_id, specialist_id: specialist }]);
+                    .insert([{ user_id: user.id, service_id, specialist_id: specialistId }]);
 
                 if (appointmentError) {
                     console.error('Ошибка при вставке записи:', appointmentError);
