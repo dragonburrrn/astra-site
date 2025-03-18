@@ -3,6 +3,14 @@ import { createClient } from '@supabase/supabase-js';
 // Подключение к Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
+
+console.log('Supabase URL:', supabaseUrl); // Логируем URL
+console.log('Supabase Key:', supabaseKey); // Логируем ключ
+
+if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase URL и Key обязательны!');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async (req, res) => {
@@ -11,20 +19,61 @@ export default async (req, res) => {
 
         const { first_name, last_name, email, phone, birth_date, location, services, specialist } = req.body;
 
+        if (!first_name || !last_name || !email || !phone || !birth_date || !location || !services || !specialist) {
+            return res.status(400).json({ message: 'Все поля обязательны для заполнения.' });
+        }
+
         try {
-            // Сохраняем данные пользователя
-            console.log('Вставляем данные пользователя:', { first_name, last_name, email, phone, birth_date, location });
-            const { data: user, error: userError } = await supabase
+            // Проверяем, существует ли пользователь с таким email
+            const { data: existingUser, error: existingUserError } = await supabase
                 .from('astra_users')
-                .insert([{ first_name, last_name, email, phone, birth_date, location }], { returning: 'representation' })
+                .select('id')
+                .eq('email', email)
                 .single();
 
-            if (userError) {
-                console.error('Ошибка при вставке пользователя:', userError);
-                throw userError;
+            if (existingUserError && existingUserError.code !== 'PGRST116') { // Игнорируем ошибку "No rows found"
+                console.error('Ошибка при проверке пользователя:', existingUserError);
+                throw existingUserError;
             }
 
-            console.log('Пользователь успешно создан:', user);
+            let user;
+            if (existingUser) {
+                // Пользователь существует, обновляем его данные
+                console.log('Пользователь уже существует, обновляем данные:', existingUser);
+                const { data: updatedUser, error: updateError } = await supabase
+                    .from('astra_users')
+                    .update({ first_name, last_name, phone, birth_date, location })
+                    .eq('id', existingUser.id)
+                    .single();
+
+                if (updateError) {
+                    console.error('Ошибка при обновлении пользователя:', updateError);
+                    throw updateError;
+                }
+
+                user = updatedUser;
+            } else {
+                // Пользователь не существует, создаем новую запись
+                console.log('Вставляем данные пользователя:', { first_name, last_name, email, phone, birth_date, location });
+                const { data: newUser, error: insertError } = await supabase
+                    .from('astra_users')
+                    .insert([{ first_name, last_name, email, phone, birth_date, location }], { returning: 'representation' })
+                    .single();
+
+                if (insertError) {
+                    console.error('Ошибка при вставке пользователя:', insertError);
+                    throw insertError;
+                }
+
+                user = newUser;
+            }
+
+            console.log('Пользователь успешно создан/обновлен:', user);
+
+            // Проверяем, что services является массивом
+            if (!services || !Array.isArray(services) || services.length === 0) {
+                return res.status(400).json({ message: 'Не выбрано ни одной услуги.' });
+            }
 
             // Сохраняем записи на услуги
             for (const service_id of services) {
