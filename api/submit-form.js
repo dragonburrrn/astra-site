@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Подключение к Supabase
-const supabaseUrl = 'https://ваш-проект.supabase.co'; // Замените на ваш URL
-const supabaseKey = 'ваш-ключ'; // Замените на ваш ключ
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 module.exports = async (req, res) => {
@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
             // Сохраняем данные пользователя
             const { data: user, error: userError } = await supabase
                 .from('astra_users')
-                .insert([{ first_name, last_name, email, phone, birth_date, location }])
+                .insert([{ first_name, last_name, email, phone, birth_date, location }], { returning: 'representation' }) // Указываем, что хотим получить данные вставленной записи
                 .single();
 
             if (userError) throw userError;
@@ -22,7 +22,7 @@ module.exports = async (req, res) => {
             for (const service_id of services) {
                 const { error: appointmentError } = await supabase
                     .from('astra_appointments')
-                    .insert([{ user_id: user.user_id, service_id, specialist_id: specialist }]);
+                    .insert([{ user_id: user.id, service_id, specialist_id: specialist }]);
 
                 if (appointmentError) throw appointmentError;
             }
