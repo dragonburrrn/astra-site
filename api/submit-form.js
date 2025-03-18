@@ -26,7 +26,7 @@ export default async (req, res) => {
         try {
             // Проверяем, существует ли пользователь с таким email
             const { data: existingUser, error: existingUserError } = await supabase
-                .from('astra_users')
+                .from('users')
                 .select('id')
                 .eq('email', email)
                 .single();
@@ -41,7 +41,7 @@ export default async (req, res) => {
                 // Пользователь существует, обновляем его данные
                 console.log('Пользователь уже существует, обновляем данные:', existingUser);
                 const { data: updatedUser, error: updateError } = await supabase
-                    .from('astra_users')
+                    .from('users')
                     .update({ first_name, last_name, phone, birth_date, location })
                     .eq('id', existingUser.id)
                     .single();
@@ -56,7 +56,7 @@ export default async (req, res) => {
                 // Пользователь не существует, создаем новую запись
                 console.log('Вставляем данные пользователя:', { first_name, last_name, email, phone, birth_date, location });
                 const { data: newUser, error: insertError } = await supabase
-                    .from('astra_users')
+                    .from('users')
                     .insert([{ first_name, last_name, email, phone, birth_date, location }], { returning: 'representation' })
                     .single();
 
@@ -79,7 +79,7 @@ export default async (req, res) => {
             for (const service_id of services) {
                 console.log('Вставляем запись на услугу:', { user_id: user.id, service_id, specialist_id: specialist });
                 const { error: appointmentError } = await supabase
-                    .from('astra_appointments')
+                    .from('appointments')
                     .insert([{ user_id: user.id, service_id, specialist_id: specialist }]);
 
                 if (appointmentError) {
