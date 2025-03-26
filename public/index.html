@@ -670,6 +670,11 @@
     }
   });
 });
+      document.querySelector('.form-container').addEventListener('submit', function(e) {
+  e.preventDefault();
+  console.log('Форма пытается отправиться!');
+  alert('Тест: форма работает!');
+});
     </script>
   </body>
 </html>
