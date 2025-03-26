@@ -582,28 +582,29 @@
     const specialists = {
       1: {
         name: "Петрова Анастасия",
-        description: "Профессиональный астролог с 8 летним опытом. Специализация: кармическая астрология и анализ прошлых жизней.",
+        description: "Профессиональный астролог с 8 летним опытом. Специализация: кармическая астрология и анализ прошлых жизней."
       },
       2: {
         name: "Колышева Полина",
-        description: "Профессиональный астролог с 10 летним опытом. Специализация: глубокий анализ натальных карт, прогнозирование и работа с кармическими задачами.",
+        description: "Профессиональный астролог с 10 летним опытом. Специализация: глубокий анализ натальных карт, прогнозирование и работа с кармическими задачами."
       },
       3: {
         name: "Романюк Марина",
-        description: "Астролог с 7 летним опытом. Специализация: медицинская астрология и вопросы здоровья.",
+        description: "Астролог с 7 летним опытом. Специализация: медицинская астрология и вопросы здоровья."
       },
       4: {
         name: "Вещунова Екатерина",
-        description: "Астролог с 12 летним опытом. Специализация: бизнес-астрология и финансовые прогнозы.",
-      },
+        description: "Астролог с 12 летним опытом. Специализация: бизнес-астрология и финансовые прогнозы."
+      }
     };
 
     const nameElement = document.querySelector(".specialist-name");
     const descElement = document.querySelector(".specialist-description");
+    const form = document.querySelector(".form-container");
 
     // Обработчик выбора специалиста
     document.querySelectorAll('input[name="specialist"]').forEach((input) => {
-      input.addEventListener("change", function () {
+      input.addEventListener("change", function() {
         if (this.checked) {
           const specialist = specialists[this.value];
           nameElement.textContent = specialist.name;
@@ -613,26 +614,24 @@
     });
 
     // Обработчик отправки формы
-    const form = document.querySelector(".form-container");
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function(e) {
       e.preventDefault();
 
-      // Проверка выбора специалиста
+      // Валидация формы
       const selectedSpecialist = document.querySelector('input[name="specialist"]:checked');
+      const selectedServices = document.querySelectorAll('input[name="services[]"]:checked');
+      const agreeCheckbox = document.querySelector('input[name="agree"]');
+
       if (!selectedSpecialist) {
         alert("Пожалуйста, выберите специалиста");
         return;
       }
 
-      // Проверка выбора хотя бы одной услуги
-      const selectedServices = document.querySelectorAll('input[name="services[]"]:checked');
       if (selectedServices.length === 0) {
         alert("Пожалуйста, выберите хотя бы одну услугу");
         return;
       }
 
-      // Проверка согласия на обработку данных
-      const agreeCheckbox = document.querySelector('input[name="agree"]');
       if (!agreeCheckbox.checked) {
         alert("Пожалуйста, дайте согласие на обработку персональных данных");
         return;
@@ -640,44 +639,41 @@
 
       // Сбор данных формы
       const formData = {
-        specialist: selectedSpecialist.value,
-        services: Array.from(selectedServices).map(service => service.value),
         first_name: document.querySelector('input[name="first_name"]').value,
         last_name: document.querySelector('input[name="last_name"]').value,
         email: document.querySelector('input[name="email"]').value,
         birth_date: document.querySelector('input[name="birth_date"]').value,
         location: document.querySelector('input[name="location"]').value,
-        agree: agreeCheckbox.checked
+        services: Array.from(selectedServices).map(s => s.value),
+        specialist: selectedSpecialist.value
       };
 
-      // Здесь можно добавить отправку данных на сервер
-      // Например, с помощью fetch API:
-      /*
-      fetch('/submit-form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
-      .then(response => response.json())
-      .then(data => {
-        alert("Форма успешно отправлена! Мы свяжемся с вами в ближайшее время.");
+      try {
+        // Отправка данных на сервер
+        const response = await fetch('/api/submit-astrology', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "Ошибка при отправке формы");
+        }
+
+        // Успешная отправка
+        alert(result.message || "Форма успешно отправлена! Мы свяжемся с вами в ближайшее время.");
         form.reset();
         nameElement.textContent = "Выберите специалиста";
         descElement.textContent = "Нажмите на фото специалиста для получения информации";
-      })
-      .catch((error) => {
-        alert("Произошла ошибка при отправке формы. Пожалуйста, попробуйте еще раз.");
-      });
-      */
-
-      // Временное решение для демонстрации
-      console.log("Отправленные данные:", formData);
-      alert("Форма успешно отправлена! Мы свяжемся с вами в ближайшее время.");
-      form.reset();
-      nameElement.textContent = "Выберите специалиста";
-      descElement.textContent = "Нажмите на фото специалиста для получения информации";
+        
+      } catch (error) {
+        console.error('Ошибка:', error);
+        alert(error.message || "Произошла ошибка при отправке формы. Пожалуйста, попробуйте еще раз.");
+      }
     });
   });
     </script>
