@@ -554,7 +554,7 @@ h3 {
 
 input[type="text"],
 input[type="email"],
-input[type="datetime"] {
+input[type="date"] {
   width: 100%;
   padding: 14px 20px;
   margin-bottom: 20px;
