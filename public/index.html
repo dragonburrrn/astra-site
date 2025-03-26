@@ -311,9 +311,9 @@
         <button class="how-button">Получить разбор</button>
       </section>
 
-      <section class="section-form">
+     <section class="section-form">
         <h2 class="form-header">Готовы узнать, что звезды готовят для вас?</h2>
-        <div class="form-container">
+        <div class="form-container" id="astroForm">
           <div class="form-left">
             <h2>
               Запишитесь на консультацию прямо сейчас и получите персональный
@@ -468,12 +468,7 @@
             />
 
             <h3>Дата рождения</h3>
-            <input
-              type="datetime-local"
-              id="birth_date"
-              name="birth_date"
-              required
-            />
+            <input type="date" id="birth_date" name="birth_date" required />
 
             <h3>Место рождения</h3>
             <input
@@ -487,11 +482,15 @@
             <div class="agree-section">
               <input type="checkbox" id="agree" name="agree" required />
               <label for="agree"
-                >Я даю согласие на обработку персональных данных и соглашаюсь с офертой.
+                >Я даю согласие на обработку персональных данных и соглашаюсь с
+                офертой.
               </label>
             </div>
 
-            <button type="submit" class="submit-btn">Получить разбор</button>
+            <button type="submit" class="submit-btn" id="submit-btn">
+              <span id="btn-text">Получить разбор</span>
+
+            </button>
           </div>
         </div>
       </section>
