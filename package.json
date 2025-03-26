@@ -11,8 +11,9 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.0.0"
-  },
+  "@sendgrid/mail": "^7.7.0",
+  "@supabase/supabase-js": "^2.21.0"
+},
   "engines": {
     "node": "18.x"
   },
