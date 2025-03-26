@@ -7,7 +7,7 @@
 
 body {
   font-family: "Inter", sans-serif; /* Единое подключение шрифта */
-  background-image: url(Slide\ 16_9\ -\ 12.svg);
+  background-image: url(/img/Slide\ 16_9\ -\ 12.svg);
   background-size: 100% auto; /* Ширина 100%, высота подстраивается */
   background-repeat: no-repeat;
   background-position: top center; /* Прижато к верху, горизонтально по центру */
@@ -632,7 +632,6 @@ input:focus {
 footer {
   background-color: transparent; /* Прозрачный фон */
   color: white;
-  padding: 60px 20px;
   width: 100%;
 }
 
@@ -707,4 +706,3 @@ footer {
   font-size: 20px;
   transition: opacity 0.3s;
 }
-
