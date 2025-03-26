@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
-console.log('Supabase URL:', supabaseUrl); // Логируем URL
-console.log('Supabase Key:', supabaseKey); // Логируем ключ
+console.log('Supabase URL:', supabaseUrl);
+console.log('Supabase Key:', supabaseKey);
 
 if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase URL и Key обязательны!');
@@ -15,22 +15,30 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async (req, res) => {
     if (req.method === 'POST') {
-        console.log('Получены данные:', req.body); // Логируем входящие данные
+        console.log('Получены данные:', req.body);
 
-        const { first_name, last_name, email, phone, birth_date, location, services, specialist } = req.body;
+        const { first_name, last_name, email, birth_date, location, services, specialist, agree } = req.body;
 
-        if (!first_name || !last_name || !email || !phone || !birth_date || !location || !services || !specialist) {
+        // Проверка обязательных полей
+        if (!first_name || !last_name || !email || !birth_date || !location || !services || !specialist || !agree) {
             return res.status(400).json({ message: 'Все поля обязательны для заполнения.' });
         }
 
         try {
             // Преобразуем services и specialist в числа
-            const servicesArray = services.map(service => parseInt(service, 10));
+            const servicesArray = Array.isArray(services) 
+                ? services.map(service => parseInt(service, 10))
+                : [parseInt(services, 10)];
             const specialistId = parseInt(specialist, 10);
 
             // Проверяем, что services и specialist являются числами
             if (servicesArray.some(isNaN) || isNaN(specialistId)) {
                 return res.status(400).json({ message: 'Неверный формат данных для услуг или специалиста.' });
+            }
+
+            // Проверяем согласие на обработку данных
+            if (agree !== 'on') {
+                return res.status(400).json({ message: 'Необходимо дать согласие на обработку персональных данных.' });
             }
 
             // Проверяем, существует ли пользователь с таким email
@@ -40,7 +48,7 @@ export default async (req, res) => {
                 .eq('email', email)
                 .single();
 
-            if (existingUserError && existingUserError.code !== 'PGRST116') { // Игнорируем ошибку "No rows found"
+            if (existingUserError && existingUserError.code !== 'PGRST116') {
                 console.error('Ошибка при проверке пользователя:', existingUserError);
                 throw existingUserError;
             }
@@ -48,64 +56,60 @@ export default async (req, res) => {
             let user;
             if (existingUser) {
                 // Пользователь существует, обновляем его данные
-                console.log('Пользователь уже существует, обновляем данные:', existingUser);
                 const { data: updatedUser, error: updateError } = await supabase
                     .from('users')
-                    .update({ first_name, last_name, phone, birth_date, location })
+                    .update({ first_name, last_name, birth_date, location })
                     .eq('id', existingUser.id)
                     .select()
                     .single();
 
-                if (updateError) {
-                    console.error('Ошибка при обновлении пользователя:', updateError);
-                    throw updateError;
-                }
-
+                if (updateError) throw updateError;
                 user = updatedUser;
             } else {
                 // Пользователь не существует, создаем новую запись
-                console.log('Вставляем данные пользователя:', { first_name, last_name, email, phone, birth_date, location });
                 const { data: newUser, error: insertError } = await supabase
                     .from('users')
-                    .insert([{ first_name, last_name, email, phone, birth_date, location }])
+                    .insert([{ first_name, last_name, email, birth_date, location }])
                     .select()
                     .single();
 
-                if (insertError) {
-                    console.error('Ошибка при вставке пользователя:', insertError);
-                    throw insertError;
-                }
-
+                if (insertError) throw insertError;
                 user = newUser;
             }
 
-            console.log('Пользователь успешно создан/обновлен:', user);
-
             // Проверяем, что services является массивом
-            if (!servicesArray || !Array.isArray(servicesArray) || servicesArray.length === 0) {
+            if (!servicesArray || servicesArray.length === 0) {
                 return res.status(400).json({ message: 'Не выбрано ни одной услуги.' });
             }
 
             // Сохраняем записи на услуги
             for (const service_id of servicesArray) {
-                console.log('Вставляем запись на услугу:', { user_id: user.id, service_id, specialist_id: specialistId });
                 const { error: appointmentError } = await supabase
                     .from('appointments')
-                    .insert([{ user_id: user.id, service_id, specialist_id: specialistId }]);
+                    .insert([{ 
+                        user_id: user.id, 
+                        service_id, 
+                        specialist_id: specialistId,
+                        status: 'pending'
+                    }]);
 
-                if (appointmentError) {
-                    console.error('Ошибка при вставке записи:', appointmentError);
-                    throw appointmentError;
-                }
+                if (appointmentError) throw appointmentError;
             }
 
             // Отправляем успешный ответ
-            res.status(200).json({ message: 'Спасибо за вашу заявку! Мы свяжемся с вами в ближайшее время.' });
+            res.status(200).json({ 
+                success: true,
+                message: 'Спасибо за вашу заявку! Мы свяжемся с вами в ближайшее время.' 
+            });
         } catch (error) {
             console.error('Ошибка:', error);
-            res.status(500).json({ message: 'Произошла ошибка при обработке формы.' });
+            res.status(500).json({ 
+                success: false,
+                message: 'Произошла ошибка при обработке формы.' 
+            });
         }
     } else {
-        res.status(405).json({ message: 'Метод не поддерживается' });
+        res.setHeader('Allow', ['POST']);
+        res.status(405).json({ message: `Метод ${req.method} не поддерживается` });
     }
 };
