@@ -600,7 +600,7 @@
   const spinner = document.getElementById("spinner");
   const formStatus = document.getElementById("form-status");
 
-  // Обработчик выбора специалиста
+   // Обработчик выбора специалиста
   document.querySelectorAll('input[name="specialist"]').forEach(input => {
     input.addEventListener("change", function() {
       if (this.checked) {
@@ -612,106 +612,44 @@
   });
 
   // Обработчик отправки формы
-  form.addEventListener("submit", async function(e) {
+  document.getElementById("astroForm").addEventListener("submit", async function(e) {
     e.preventDefault();
     
-    // Включение состояния загрузки
-    submitBtn.disabled = true;
-    btnText.textContent = "Отправка...";
-    spinner.classList.remove("hidden");
-    formStatus.style.display = "none";
-
     try {
       const formData = {
-        first_name: form.querySelector('[name="first_name"]').value,
-        last_name: form.querySelector('[name="last_name"]').value,
-        email: form.querySelector('[name="email"]').value,
-        birth_date: form.querySelector('[name="birth_date"]').value,
-        location: form.querySelector('[name="location"]').value,
-        services: Array.from(form.querySelectorAll('input[name="services[]"]:checked')).map(el => el.value),
-        specialist: form.querySelector('input[name="specialist"]:checked').value
+        first_name: document.getElementById('first_name').value,
+        last_name: document.getElementById('last_name').value,
+        email: document.getElementById('email').value,
+        birth_date: document.getElementById('birth_date').value,
+        location: document.getElementById('location').value,
+        services: Array.from(document.querySelectorAll('input[name="services[]"]:checked')).map(el => el.value),
+        specialist: document.querySelector('input[name="specialist"]:checked').value
       };
 
       const response = await fetch('/api/submit-form', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
 
       const result = await response.json();
-
+      
       if (!response.ok) {
-        throw new Error(result.message || "Ошибка сервера");
+        throw new Error(result.message || "Ошибка при отправке формы");
       }
 
       // Успешная отправка
-      formStatus.textContent = result.message || "Форма успешно отправлена!";
-      formStatus.className = "form-status success";
-      formStatus.style.display = "block";
+      alert("Спасибо! Ваша заявка принята. Мы свяжемся с вами в ближайшее время.");
       
-      form.reset();
+      // Сброс формы
+      this.reset();
       document.querySelector(".specialist-name").textContent = "Выберите специалиста";
       document.querySelector(".specialist-description").textContent = "Нажмите на фото специалиста для получения информации";
 
     } catch (error) {
-      console.error("Ошибка:", error);
-      formStatus.textContent = error.message || "Произошла ошибка при отправке формы";
-      formStatus.className = "form-status error";
-      formStatus.style.display = "block";
-    } finally {
-      submitBtn.disabled = false;
-      btnText.textContent = "Получить разбор";
-      spinner.classList.add("hidden");
+      alert("Произошла ошибка: " + error.message);
     }
   });
-});
-      document.querySelector('.form-container').addEventListener('submit', function(e) {
-  e.preventDefault();
-  console.log('Форма пытается отправиться!');
-  alert('Тест: форма работает!');
-});
-      document.getElementById('astroForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  console.log('Начало обработки формы');
-
-  try {
-    // 1. Сбор данных
-    const formData = {
-      first_name: document.getElementById('first_name').value,
-      last_name: document.getElementById('last_name').value,
-      email: document.getElementById('email').value,
-      birth_date: document.getElementById('birth_date').value,
-      location: document.getElementById('location').value,
-      services: Array.from(document.querySelectorAll('input[name="services[]"]:checked')).map(el => el.value),
-      specialist: document.querySelector('input[name="specialist"]:checked').value
-    };
-    console.log('Собранные данные:', formData);
-
-    // 2. Валидация
-    if (!formData.specialist || formData.services.length === 0) {
-      throw new Error('Выберите специалиста и хотя бы одну услугу');
-    }
-
-    // 3. Отправка
-    console.log('Отправка запроса...');
-    const response = await fetch('/api/submit-form', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData)
-    });
-    
-    if (!response.ok) throw new Error('Ошибка сервера');
-    
-    const result = await response.json();
-    console.log('Ответ сервера:', result);
-    alert(result.message || 'Успешно отправлено!');
-
-  } catch (error) {
-    console.error('Ошибка:', error);
-    alert(error.message || 'Произошла ошибка');
-  }
 });
     </script>
   </body>
