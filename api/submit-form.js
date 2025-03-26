@@ -5,6 +5,11 @@ const supabaseKey = process.env.SUPABASE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+
+const sgMail = require('@sendgrid/mail');
+const { createClient } = require('@supabase/supabase-js');
+
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Метод не поддерживается' });
