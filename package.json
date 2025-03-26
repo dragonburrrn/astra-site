@@ -1,8 +1,8 @@
 {
   "name": "my-astro-site",
   "version": "1.0.0",
-  "description": "Мой сайт с формой записи",
-  "type": "module",
+    "description": "Мой сайт с формой записи",
+  "type": "commonjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,15 +11,7 @@
   },
   "dependencies": {
     "@sendgrid/mail": "^7.7.0",
-    "@supabase/supabase-js": "^2.21.0",
-    "next": "^14.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/sendgrid": "^4.3.0"
+    "@supabase/supabase-js": "^2.21.0"
   },
   "engines": {
     "node": ">=18.x"
