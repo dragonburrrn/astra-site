@@ -597,84 +597,79 @@
       }
     };
 
-    const nameElement = document.querySelector(".specialist-name");
-    const descElement = document.querySelector(".specialist-description");
-    const form = document.querySelector(".form-container");
+    const form = document.getElementById("astroForm");
+  const submitBtn = document.getElementById("submit-btn");
+  const btnText = document.getElementById("btn-text");
+  const spinner = document.getElementById("spinner");
+  const formStatus = document.getElementById("form-status");
 
-    // Обработчик выбора специалиста
-    document.querySelectorAll('input[name="specialist"]').forEach((input) => {
-      input.addEventListener("change", function() {
-        if (this.checked) {
-          const specialist = specialists[this.value];
-          nameElement.textContent = specialist.name;
-          descElement.textContent = specialist.description;
-        }
-      });
-    });
-
-    // Обработчик отправки формы
-    form.addEventListener("submit", async function(e) {
-      e.preventDefault();
-
-      // Валидация формы
-      const selectedSpecialist = document.querySelector('input[name="specialist"]:checked');
-      const selectedServices = document.querySelectorAll('input[name="services[]"]:checked');
-      const agreeCheckbox = document.querySelector('input[name="agree"]');
-
-      if (!selectedSpecialist) {
-        alert("Пожалуйста, выберите специалиста");
-        return;
-      }
-
-      if (selectedServices.length === 0) {
-        alert("Пожалуйста, выберите хотя бы одну услугу");
-        return;
-      }
-
-      if (!agreeCheckbox.checked) {
-        alert("Пожалуйста, дайте согласие на обработку персональных данных");
-        return;
-      }
-
-      // Сбор данных формы
-      const formData = {
-        first_name: document.querySelector('input[name="first_name"]').value,
-        last_name: document.querySelector('input[name="last_name"]').value,
-        email: document.querySelector('input[name="email"]').value,
-        birth_date: document.querySelector('input[name="birth_date"]').value,
-        location: document.querySelector('input[name="location"]').value,
-        services: Array.from(selectedServices).map(s => s.value),
-        specialist: selectedSpecialist.value
-      };
-
-      try {
-        // Отправка данных на сервер
-        const response = await fetch('/api/submit-astrology', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.message || "Ошибка при отправке формы");
-        }
-
-        // Успешная отправка
-        alert(result.message || "Форма успешно отправлена! Мы свяжемся с вами в ближайшее время.");
-        form.reset();
-        nameElement.textContent = "Выберите специалиста";
-        descElement.textContent = "Нажмите на фото специалиста для получения информации";
-        
-      } catch (error) {
-        console.error('Ошибка:', error);
-        alert(error.message || "Произошла ошибка при отправке формы. Пожалуйста, попробуйте еще раз.");
+  // Обработчик выбора специалиста
+  document.querySelectorAll('input[name="specialist"]').forEach(input => {
+    input.addEventListener("change", function() {
+      if (this.checked) {
+        const specialist = specialists[this.value];
+        document.querySelector(".specialist-name").textContent = specialist.name;
+        document.querySelector(".specialist-description").textContent = specialist.description;
       }
     });
   });
+
+  // Обработчик отправки формы
+  form.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    
+    // Включение состояния загрузки
+    submitBtn.disabled = true;
+    btnText.textContent = "Отправка...";
+    spinner.classList.remove("hidden");
+    formStatus.style.display = "none";
+
+    try {
+      const formData = {
+        first_name: form.querySelector('[name="first_name"]').value,
+        last_name: form.querySelector('[name="last_name"]').value,
+        email: form.querySelector('[name="email"]').value,
+        birth_date: form.querySelector('[name="birth_date"]').value,
+        location: form.querySelector('[name="location"]').value,
+        services: Array.from(form.querySelectorAll('input[name="services[]"]:checked')).map(el => el.value),
+        specialist: form.querySelector('input[name="specialist"]:checked').value
+      };
+
+      const response = await fetch('/api/submit-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Ошибка сервера");
+      }
+
+      // Успешная отправка
+      formStatus.textContent = result.message || "Форма успешно отправлена!";
+      formStatus.className = "form-status success";
+      formStatus.style.display = "block";
+      
+      form.reset();
+      document.querySelector(".specialist-name").textContent = "Выберите специалиста";
+      document.querySelector(".specialist-description").textContent = "Нажмите на фото специалиста для получения информации";
+
+    } catch (error) {
+      console.error("Ошибка:", error);
+      formStatus.textContent = error.message || "Произошла ошибка при отправке формы";
+      formStatus.className = "form-status error";
+      formStatus.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+      btnText.textContent = "Получить разбор";
+      spinner.classList.add("hidden");
+    }
+  });
+});
     </script>
   </body>
 </html>
