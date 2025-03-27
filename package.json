@@ -9,11 +9,14 @@
     "start": "next start",
     "deploy": "vercel --prod"
   },
+  "type": "commonjs",
   "dependencies": {
     "@sendgrid/mail": "^7.7.0",
     "@supabase/supabase-js": "^2.21.0"
-  },
+  }
   "engines": {
     "node": ">=18.x"
   }
 }
+
+
