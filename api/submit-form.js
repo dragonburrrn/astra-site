@@ -53,7 +53,7 @@ export default async function handler(req, res) {
 
     // 3. Отправка уведомлений
     const adminMsg = {
-      to: process.env.ADMIN_EMAIL || 'your@domain.com',
+      to: process.env.ADMIN_EMAIL || 'petersonanastasia594@gmail.com',
       from: process.env.SENDGRID_FROM_EMAIL,
       subject: `Новая заявка от ${first_name} ${last_name}`,
       html: `
