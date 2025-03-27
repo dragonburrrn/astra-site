@@ -14,7 +14,7 @@
     {
       "src": "/api/submit-form",
       "dest": "/api/submit-form.js",
-      "methods": ["POST"]
+      "methods": ["POST", "OPTIONS"]
     },
     {
       "src": "/(.*)",
