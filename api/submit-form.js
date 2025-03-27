@@ -1,5 +1,14 @@
+import { createClient } from '@supabase/supabase-js';
+import sgMail from '@sendgrid/mail';
+
+// Initialize SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+// Initialize Supabase
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
 export default async function handler(req, res) {
-  // Явно устанавливаем заголовки CORS
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -8,35 +17,6 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-
-const sgMail = require('@sendgrid/mail');
-const { createClient } = require('@supabase/supabase-js');
-
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Метод не поддерживается' });
-  }
-
-  try {
-    const { first_name, last_name, email, birth_date, location, services, specialist } = req.body;
-import { createClient } from '@supabase/supabase-js';
-import sgMail from '@sendgrid/mail';
-
-// Инициализация SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-// Инициализация Supabase
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-
-export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -44,12 +24,12 @@ export default async function handler(req, res) {
   try {
     const { first_name, last_name, email, birth_date, location, services, specialist } = req.body;
 
-    // Валидация данных
+    // Validate data
     if (!first_name || !last_name || !email || !birth_date || !location || !services || !specialist) {
-      throw new Error('Все поля обязательны для заполнения');
+      return res.status(400).json({ message: 'Все поля обязательны для заполнения' });
     }
 
-    // 1. Сохраняем данные в Supabase
+    // 1. Save user data to Supabase
     const { data: user, error: supabaseError } = await supabase
       .from('users')
       .upsert(
@@ -67,7 +47,7 @@ export default async function handler(req, res) {
 
     if (supabaseError) throw supabaseError;
 
-    // 2. Сохраняем информацию о выбранных услугах
+    // 2. Save service information
     const { error: servicesError } = await supabase
       .from('user_services')
       .insert(
@@ -80,11 +60,11 @@ export default async function handler(req, res) {
 
     if (servicesError) throw servicesError;
 
-    // 3. Отправляем письмо администратору
+    // 3. Send email to admin
     const adminMsg = {
       to: process.env.SENDGRID_TO_EMAIL,
       from: process.env.SENDGRID_FROM_EMAIL,
-      replyTo: email, // Ответы пойдут клиенту
+      replyTo: email,
       subject: '🔥 Новая заявка на астрологический разбор',
       html: `
         <h2>Новый клиент запросил консультацию</h2>
@@ -100,7 +80,7 @@ export default async function handler(req, res) {
       `,
     };
 
-    // 4. Отправляем подтверждение клиенту
+    // 4. Send confirmation to client
     const clientMsg = {
       to: email,
       from: process.env.SENDGRID_FROM_EMAIL,
@@ -136,58 +116,4 @@ export default async function handler(req, res) {
               'Произошла ошибка при обработке формы' 
     });
   }
-}
-    // Валидация
-    if (!first_name || !last_name || !email || !birth_date || !location || !services || !specialist) {
-      return res.status(400).json({ message: 'Все поля обязательны для заполнения' });
-    }
-
-    // Проверка/создание пользователя
-    let { data: user, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (!user) {
-      const { data: newUser, error: newUserError } = await supabase
-        .from('users')
-        .insert([{ 
-          first_name, 
-          last_name, 
-          email, 
-          birth_date, 
-          location 
-        }])
-        .select()
-        .single();
-      
-      if (newUserError) throw newUserError;
-      user = newUser;
-    }
-
-    // Создание записей на услуги
-    for (const service_id of services) {
-      const { error: appointmentError } = await supabase
-        .from('appointments')
-        .insert([{
-          user_id: user.id,
-          service_id: parseInt(service_id),
-          specialist_id: parseInt(specialist)
-        }]);
-      
-      if (appointmentError) throw appointmentError;
-    }
-
-    return res.status(200).json({ 
-      message: 'Спасибо! Ваша заявка принята. Мы свяжемся с вами в ближайшее время.' 
-    });
-
-  } catch (error) {
-    console.error('Ошибка:', error);
-    return res.status(500).json({ 
-      message: error.message || 'Произошла ошибка при обработке формы' 
-    });
-  }
-}
 }
