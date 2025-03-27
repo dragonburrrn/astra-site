@@ -46,7 +46,7 @@ export default async function handler(req, res) {
 
     // 2. Сохраняем информацию о выбранных услугах
     const { error: servicesError } = await supabase
-      .from('user_services')
+      .from('appointments')
       .insert(
         services.map(service_id => ({
           user_id: user.id,
