@@ -1,6 +1,7 @@
 // submit-form.js (CommonJS версия)
 const { createClient } = require('@supabase/supabase-js');
-
+const TELEGRAM_BOT_TOKEN = '8180342154:AAEg16dbAAybWfW8ulwk_-9UvuzMmwq5IW8';
+        const TELEGRAM_CHAT_ID = '-4675095648';
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
