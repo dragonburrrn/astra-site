@@ -136,8 +136,8 @@ main {
 }
 
 .specialist {
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: auto;
+  margin: 100px auto;
   padding: 40px 20px;
   text-align: center;
   font-family: "Inter", sans-serif;
