@@ -36,7 +36,26 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 1. Сохраняем пользователя
+    // 1. Получаем названия услуг
+    const { data: servicesData, error: servicesError } = await supabase
+      .from('services')
+      .select('id, name')
+      .in('id', services);
+
+    if (servicesError) throw servicesError;
+
+    const serviceNames = servicesData.map(service => service.name);
+
+    // 2. Получаем данные специалиста
+    const { data: specialistData, error: specialistError } = await supabase
+      .from('specialists')
+      .select('id, name, position')
+      .eq('id', specialist)
+      .single();
+
+    if (specialistError) throw specialistError;
+
+    // 3. Сохраняем пользователя
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -51,7 +70,7 @@ module.exports = async (req, res) => {
 
     if (userError) throw userError;
 
-    // 2. Сохраняем услуги
+    // 4. Сохраняем услуги
     const { error: appointmentsError } = await supabase
       .from('appointments')
       .insert(
@@ -64,7 +83,7 @@ module.exports = async (req, res) => {
 
     if (appointmentsError) throw appointmentsError;
 
-    // 3. Отправка в Telegram
+    // 5. Отправка в Telegram
     try {
       const telegramMessage = `
         🚀 <b>Новая заявка</b>
@@ -72,8 +91,8 @@ module.exports = async (req, res) => {
         ✉️ <b>Email:</b> ${email}
         ${birth_date ? `🎂 <b>Дата рождения:</b> ${new Date(birth_date).toLocaleDateString()}\n` : ''}
         ${location ? `📍 <b>Локация:</b> ${location}\n` : ''}
-        🛠 <b>Услуги:</b> ${services.join(', ')}
-        👩‍⚕️ <b>Специалист:</b> ${specialist}
+        🛠 <b>Услуги:</b> ${serviceNames.join(', ')}
+        👩‍⚕️ <b>Специалист:</b> ${specialistData.name}${specialistData.position ? ` (${specialistData.position})` : ''}
       `.trim();
 
       const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
