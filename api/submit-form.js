@@ -17,75 +17,95 @@ export default async function handler(req, res) {
   try {
     const { first_name, last_name, email, birth_date, location, services, specialist } = req.body;
 
-    // Валидация
-    if (!first_name || !email || !services || !specialist) {
-      return res.status(400).json({ message: 'Обязательные поля: имя, email, услуги и специалист' });
+    // Валидация с проверкой массива services
+    if (!first_name || !email) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Имя и email обязательны' 
+      });
     }
 
-    // 1. Сохраняем пользователя в таблицу users
+    if (!Array.isArray(services) || services.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Необходимо выбрать хотя бы одну услугу'
+      });
+    }
+
+    if (!specialist) {
+      return res.status(400).json({
+        success: false,
+        message: 'Необходимо указать специалиста'
+      });
+    }
+
+    // 1. Сохраняем пользователя
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
         first_name,
-        last_name,
+        last_name: last_name || null,
         email,
         birth_date: birth_date ? new Date(birth_date).toISOString() : null,
-        location
+        location: location || null
       })
       .select()
       .single();
 
     if (userError) throw userError;
 
-    // 2. Сохраняем услуги в таблицу appointments
-    const appointmentsData = services.map(service_id => ({
-      user_id: user.id,
-      service_id,
-      specialist_id: specialist,
-      created_at: new Date().toISOString()
-    }));
+    // 2. Подготовка данных для appointments
+    const appointmentsToInsert = services
+      .filter(service => service) // Фильтрация null/undefined
+      .map(service_id => ({
+        user_id: user.id,
+        service_id,
+        specialist_id: specialist
+      }));
 
+    if (appointmentsToInsert.length === 0) {
+      throw new Error('Нет валидных услуг для сохранения');
+    }
+
+    // 3. Сохраняем услуги
     const { error: appointmentsError } = await supabase
       .from('appointments')
-      .insert(appointmentsData);
+      .insert(appointmentsToInsert);
 
     if (appointmentsError) throw appointmentsError;
 
-    // 3. Получаем названия услуг для Telegram-уведомления
-    // (Предполагаем, что у вас есть таблица services с id и name)
-    const { data: servicesData } = await supabase
-      .from('services')
-      .select('name')
-      .in('id', services);
-
-    const serviceNames = servicesData.map(s => s.name).join(', ');
-
-    // 4. Отправляем уведомление в Telegram
+    // 4. Формируем сообщение для Telegram
     const telegramMessage = `
-      🚀 *Новый клиент*
-      ├ *Имя*: ${first_name} ${last_name}
-      ├ *Email*: ${email}
-      ├ *Дата рождения*: ${birth_date ? new Date(birth_date).toLocaleDateString() : 'не указана'}
-      ├ *Локация*: ${location || 'не указана'}
-      ├ *Услуги*: ${serviceNames}
-      └ *Специалист*: ${specialist}
-    `.replace(/^ +/gm, '');
+      🚀 Новый клиент
+      Имя: ${first_name}${last_name ? ' ' + last_name : ''}
+      Email: ${email}
+      ${birth_date ? `Дата рождения: ${new Date(birth_date).toLocaleDateString()}\n` : ''}
+      ${location ? `Локация: ${location}\n` : ''}
+      Услуги: ${services.join(', ')}
+      Специалист: ${specialist}
+    `.trim();
 
-    const telegramResponse = await fetch(
-      `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.TELEGRAM_YOUR_CHAT_ID,
-          text: telegramMessage,
-          parse_mode: 'Markdown'
-        })
+    // 5. Отправляем в Telegram
+    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
+      try {
+        const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const telegramResponse = await fetch(telegramUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: process.env.TELEGRAM_CHAT_ID,
+            text: telegramMessage
+          })
+        });
+
+        const telegramResult = await telegramResponse.json();
+        if (!telegramResult.ok) {
+          console.error('Ошибка Telegram:', telegramResult);
+        }
+      } catch (tgError) {
+        console.error('Ошибка отправки в Telegram:', tgError);
       }
-    );
-
-    const result = await telegramResponse.json();
-    if (!result.ok) throw new Error('Telegram send failed');
+    }
 
     return res.status(200).json({ 
       success: true,
@@ -93,11 +113,14 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Ошибка:', error);
+    console.error('Ошибка обработки:', error);
     return res.status(500).json({ 
       success: false,
       message: 'Ошибка при обработке заявки',
-      error: process.env.NODE_ENV === 'development' ? error.message : null
+      ...(process.env.NODE_ENV === 'development' && { 
+        error: error.message,
+        stack: error.stack 
+      })
     });
   }
 }
