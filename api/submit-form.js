@@ -1,11 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+// submit-form.js (CommonJS версия)
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
 );
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   // Настройка CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
     const errors = [];
     if (!first_name) errors.push('Имя обязательно');
     if (!email) errors.push('Email обязателен');
-    if (!Array.isArray(services) errors.push('Услуги должны быть массивом');
+    if (!Array.isArray(services)) errors.push('Услуги должны быть массивом');
     if (!specialist) errors.push('Специалист обязателен');
     
     if (errors.length > 0) {
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
 
     if (appointmentsError) throw appointmentsError;
 
-    // 3. Отправка в Telegram (с улучшенной обработкой)
+    // 3. Отправка в Telegram
     if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
       try {
         const telegramMessage = `
@@ -72,8 +73,7 @@ export default async function handler(req, res) {
           👩‍⚕️ <b>Специалист:</b> ${specialist}
         `.trim();
 
-        const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-        const response = await fetch(telegramUrl, {
+        const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -84,19 +84,10 @@ export default async function handler(req, res) {
         });
 
         const result = await response.json();
-        
-        if (!result.ok) {
-          console.error('Telegram API Error:', result);
-          throw new Error(result.description || 'Ошибка Telegram API');
-        }
-
-        console.log('Сообщение отправлено в Telegram:', result.result.message_id);
+        console.log('Telegram response:', result);
       } catch (tgError) {
-        console.error('Ошибка отправки в Telegram:', tgError);
-        // Не прерываем выполнение, только логируем
+        console.error('Telegram error:', tgError);
       }
-    } else {
-      console.warn('Переменные Telegram не настроены, пропускаем отправку');
     }
 
     return res.status(200).json({ 
@@ -105,11 +96,11 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Ошибка обработки:', error);
+    console.error('Error:', error);
     return res.status(500).json({ 
       success: false,
       message: 'Ошибка при обработке заявки',
-      ...(process.env.NODE_ENV === 'development' && { error: error.message })
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-}
+};
