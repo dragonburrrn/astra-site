@@ -18,35 +18,56 @@ export default async function handler(req, res) {
     const { first_name, last_name, email, birth_date, location, services, specialist } = req.body;
 
     // Валидация
-    if (!first_name || !email) {
-      return res.status(400).json({ message: 'Имя и email обязательны' });
+    if (!first_name || !email || !services || !specialist) {
+      return res.status(400).json({ message: 'Обязательные поля: имя, email, услуги и специалист' });
     }
 
-    // 1. Сохраняем в Supabase
-    const { data: user, error: dbError } = await supabase
+    // 1. Сохраняем пользователя в таблицу users
+    const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
         first_name,
         last_name,
         email,
         birth_date: birth_date ? new Date(birth_date).toISOString() : null,
-        location,
-        services,
-        specialist
+        location
       })
       .select()
       .single();
 
-    if (dbError) throw dbError;
+    if (userError) throw userError;
 
-    // 2. Отправляем уведомление в ваш Telegram
+    // 2. Сохраняем услуги в таблицу appointments
+    const appointmentsData = services.map(service_id => ({
+      user_id: user.id,
+      service_id,
+      specialist_id: specialist,
+      created_at: new Date().toISOString()
+    }));
+
+    const { error: appointmentsError } = await supabase
+      .from('appointments')
+      .insert(appointmentsData);
+
+    if (appointmentsError) throw appointmentsError;
+
+    // 3. Получаем названия услуг для Telegram-уведомления
+    // (Предполагаем, что у вас есть таблица services с id и name)
+    const { data: servicesData } = await supabase
+      .from('services')
+      .select('name')
+      .in('id', services);
+
+    const serviceNames = servicesData.map(s => s.name).join(', ');
+
+    // 4. Отправляем уведомление в Telegram
     const telegramMessage = `
       🚀 *Новый клиент*
       ├ *Имя*: ${first_name} ${last_name}
       ├ *Email*: ${email}
       ├ *Дата рождения*: ${birth_date ? new Date(birth_date).toLocaleDateString() : 'не указана'}
       ├ *Локация*: ${location || 'не указана'}
-      ├ *Услуги*: ${services.join(', ')}
+      ├ *Услуги*: ${serviceNames}
       └ *Специалист*: ${specialist}
     `.replace(/^ +/gm, '');
 
@@ -75,7 +96,8 @@ export default async function handler(req, res) {
     console.error('Ошибка:', error);
     return res.status(500).json({ 
       success: false,
-      message: 'Ошибка при обработке заявки'
+      message: 'Ошибка при обработке заявки',
+      error: process.env.NODE_ENV === 'development' ? error.message : null
     });
   }
 }
