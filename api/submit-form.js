@@ -1,4 +1,4 @@
-// submit-form.js (CommonJS версия)
+// submit-form.js (исправленная версия с правильными названиями таблиц)
 const { createClient } = require('@supabase/supabase-js');
 
 // Константы Telegram
@@ -36,26 +36,38 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 1. Получаем названия услуг
-    const { data: servicesData, error: servicesError } = await supabase
-      .from('services')
-      .select('id, name')
-      .in('id', services);
+    // 1. Получаем названия услуг из таблицы astra_services
+    let serviceNames = services;
+    try {
+      const { data: servicesData, error: servicesError } = await supabase
+        .from('astra_services') // Исправлено на правильное название таблицы
+        .select('id, name')
+        .in('id', services);
 
-    if (servicesError) throw servicesError;
+      if (!servicesError && servicesData && servicesData.length > 0) {
+        serviceNames = servicesData.map(service => service.name);
+      }
+    } catch (e) {
+      console.log('Не удалось получить названия услуг, используем ID:', e.message);
+    }
 
-    const serviceNames = servicesData.map(service => service.name);
+    // 2. Получаем данные специалиста из таблицы astra_specialists
+    let specialistName = specialist;
+    try {
+      const { data: specialistData, error: specialistError } = await supabase
+        .from('astra_specialists') // Исправлено на правильное название таблицы
+        .select('id, name, position')
+        .eq('id', specialist)
+        .single();
 
-    // 2. Получаем данные специалиста
-    const { data: specialistData, error: specialistError } = await supabase
-      .from('specialists')
-      .select('id, name, position')
-      .eq('id', specialist)
-      .single();
+      if (!specialistError && specialistData) {
+        specialistName = `${specialistData.name}${specialistData.position ? ` (${specialistData.position})` : ''}`;
+      }
+    } catch (e) {
+      console.log('Не удалось получить данные специалиста, используем ID:', e.message);
+    }
 
-    if (specialistError) throw specialistError;
-
-    // 3. Сохраняем пользователя
+    // 3. Сохраняем пользователя в таблицу users
     const { data: user, error: userError } = await supabase
       .from('users')
       .insert({
@@ -70,7 +82,7 @@ module.exports = async (req, res) => {
 
     if (userError) throw userError;
 
-    // 4. Сохраняем услуги
+    // 4. Сохраняем услуги в таблицу appointments
     const { error: appointmentsError } = await supabase
       .from('appointments')
       .insert(
@@ -92,7 +104,7 @@ module.exports = async (req, res) => {
         ${birth_date ? `🎂 <b>Дата рождения:</b> ${new Date(birth_date).toLocaleDateString()}\n` : ''}
         ${location ? `📍 <b>Локация:</b> ${location}\n` : ''}
         🛠 <b>Услуги:</b> ${serviceNames.join(', ')}
-        👩‍⚕️ <b>Специалист:</b> ${specialistData.name}${specialistData.position ? ` (${specialistData.position})` : ''}
+        👩‍⚕️ <b>Специалист:</b> ${specialistName}
       `.trim();
 
       const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
