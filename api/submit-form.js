@@ -1,4 +1,4 @@
-// submit-form.js (исправленная версия с правильными названиями таблиц)
+// submit-form.js (финальная версия с правильными названиями колонок)
 const { createClient } = require('@supabase/supabase-js');
 
 // Константы Telegram
@@ -40,12 +40,12 @@ module.exports = async (req, res) => {
     let serviceNames = services;
     try {
       const { data: servicesData, error: servicesError } = await supabase
-        .from('astra_services') // Исправлено на правильное название таблицы
-        .select('id, name')
-        .in('id', services);
+        .from('astra_services')
+        .select('service_id, service_name') // Исправлено на правильные названия колонок
+        .in('service_id', services);
 
       if (!servicesError && servicesData && servicesData.length > 0) {
-        serviceNames = servicesData.map(service => service.name);
+        serviceNames = servicesData.map(service => service.service_name);
       }
     } catch (e) {
       console.log('Не удалось получить названия услуг, используем ID:', e.message);
@@ -55,13 +55,13 @@ module.exports = async (req, res) => {
     let specialistName = specialist;
     try {
       const { data: specialistData, error: specialistError } = await supabase
-        .from('astra_specialists') // Исправлено на правильное название таблицы
-        .select('id, name, position')
-        .eq('id', specialist)
+        .from('astra_specialists')
+        .select('specialist_id, specialist_name') // Исправлено на правильные названия колонок
+        .eq('specialist_id', specialist)
         .single();
 
       if (!specialistError && specialistData) {
-        specialistName = `${specialistData.name}${specialistData.position ? ` (${specialistData.position})` : ''}`;
+        specialistName = specialistData.specialist_name;
       }
     } catch (e) {
       console.log('Не удалось получить данные специалиста, используем ID:', e.message);
