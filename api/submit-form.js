@@ -1,7 +1,10 @@
 // submit-form.js (CommonJS версия)
 const { createClient } = require('@supabase/supabase-js');
+
+// Константы Telegram
 const TELEGRAM_BOT_TOKEN = '8180342154:AAEg16dbAAybWfW8ulwk_-9UvuzMmwq5IW8';
-        const TELEGRAM_CHAT_ID = '-4675095648';
+const TELEGRAM_CHAT_ID = '-4675095648';
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
@@ -62,33 +65,31 @@ module.exports = async (req, res) => {
     if (appointmentsError) throw appointmentsError;
 
     // 3. Отправка в Telegram
-    if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID) {
-      try {
-        const telegramMessage = `
-          🚀 <b>Новая заявка</b>
-          👤 <b>Имя:</b> ${first_name}${last_name ? ' ' + last_name : ''}
-          ✉️ <b>Email:</b> ${email}
-          ${birth_date ? `🎂 <b>Дата рождения:</b> ${new Date(birth_date).toLocaleDateString()}\n` : ''}
-          ${location ? `📍 <b>Локация:</b> ${location}\n` : ''}
-          🛠 <b>Услуги:</b> ${services.join(', ')}
-          👩‍⚕️ <b>Специалист:</b> ${specialist}
-        `.trim();
+    try {
+      const telegramMessage = `
+        🚀 <b>Новая заявка</b>
+        👤 <b>Имя:</b> ${first_name}${last_name ? ' ' + last_name : ''}
+        ✉️ <b>Email:</b> ${email}
+        ${birth_date ? `🎂 <b>Дата рождения:</b> ${new Date(birth_date).toLocaleDateString()}\n` : ''}
+        ${location ? `📍 <b>Локация:</b> ${location}\n` : ''}
+        🛠 <b>Услуги:</b> ${services.join(', ')}
+        👩‍⚕️ <b>Специалист:</b> ${specialist}
+      `.trim();
 
-        const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: process.env.TELEGRAM_CHAT_ID,
-            text: telegramMessage,
-            parse_mode: 'HTML'
-          })
-        });
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: telegramMessage,
+          parse_mode: 'HTML'
+        })
+      });
 
-        const result = await response.json();
-        console.log('Telegram response:', result);
-      } catch (tgError) {
-        console.error('Telegram error:', tgError);
-      }
+      const result = await response.json();
+      console.log('Telegram response:', result);
+    } catch (tgError) {
+      console.error('Telegram error:', tgError);
     }
 
     return res.status(200).json({ 
